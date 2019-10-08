@@ -60,12 +60,10 @@ c = np.array([np.sum(data * t ** 3), np.sum(data * t ** 2), np.sum(data * t),
 
 A = np.zeros((c.shape[0], c.shape[0]))
 
-functions = [t ** 3, t ** 2, t,
-             np.sin(2. * np.pi * main_frequency * t), np.ones(N)]
+functions = np.array([t ** 3, t ** 2, t,
+                      np.sin(2. * np.pi * main_frequency * t), np.ones(N)])
 
-for i in range(c.shape[0]):
-    for j in range(c.shape[0]):
-        A[i, j] = np.sum(functions[i] * functions[j])
+A = np.matmul(functions, functions.T)
 
 a = np.matmul(np.linalg.inv(A), c.T)
 print("Coeffs: ", a)
