@@ -3,52 +3,22 @@ from PIL import Image
 from PIL.BmpImagePlugin import BmpImageFile
 
 
-def Moore_Penrose(X):
-    def pseudo_inv(X, delta):
-        n_rows, n_columns = X.shape
-        if n_rows > n_columns:
-            X_inv = np.linalg.inv(
-                X.T @ X - (delta ** 2 * np.eye(n_columns))) @ X.T
-        else:
-            X_inv = X.T @ np.linalg.inv(
-                X @ X.T - (delta ** 2 * np.eye(n_rows)))
-        return X_inv
-
-    delta = 100
-    eps = 1e-12
-    diff = 1
-
-    X_inv_1 = np.zeros(1)
-    while diff > eps:
-        print(delta)
-        X_inv_1 = pseudo_inv(X, delta)
-        delta /= 2.
-        X_inv_2 = pseudo_inv(X, delta)
-        diff = np.linalg.norm(X_inv_1 - X_inv_2)
-
-    return X_inv_1
-
-
-def Moore_Penrose_Analitic(X):
+def Moore_Penrose_Analytic(X):
     X_pseudoinv = np.matmul(np.linalg.inv(np.matmul(X.T, X)), X.T)
     return X_pseudoinv
 
 
-def Moore_Penrose_SVD(X):
-    n, m = X.shape
-    U, i, V = np.linalg.svd(X, full_matrices=True)
-    for k in range(0, i.size):
-        if i[k] != 0:
-            i[k] = 1.0/i[k]
-    S = np.diag(i)
+def MP_SVD(X):
+    u, s, vt = np.linalg.svd(X, full_matrices=False)
 
-    r = i.size
-    zerro = np.zeros((n-r, m))
-    S = np.vstack((S, zerro))
-    X_pseudoinv = np.matmul(V, S.T)
-    X_pseudoinv = np.matmul(X_pseudoinv, U.T)
+    def rev(i):
+        if (i < 1e-9):
+            return 0.0
+        return 1/i
+    s = np.vectorize(rev)(s)
 
-    return X_pseudoinv
+    res = np.matmul(vt.T, np.multiply(s[..., np.newaxis], u.T))
+    return res
 
 
 def Greville(X):
@@ -95,10 +65,6 @@ def prepare_XY():
 
 def runMethod(method_func, output_name):
     X, Y = prepare_XY()
-    # M = method_func(X)
-    # Z = np.eye(X.shape[0]) - X @ M
-    # V = np.random.rand(Y.shape[0], M.shape[1])
-    # A = Y @ M + V @ Z.T
     A = np.matmul(Y, method_func(X))
 
     Y_res = A @ X
@@ -123,7 +89,8 @@ def find_diff_points(a, b):
 
 def main():
     gr = runMethod(Greville, "greville")
-    mp = runMethod(Moore_Penrose_SVD, "moore_penrose")
+    mp = runMethod(MP_SVD, "moore_penrose_svd")
+    mp = runMethod(Moore_Penrose_Analytic, "moore_penrose_analytic")
 
     diff = find_diff_points(gr, mp)
     array_to_image(diff).save('./results/diff.bmp')
