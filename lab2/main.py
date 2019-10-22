@@ -7,25 +7,26 @@ import os
 img_path = os.getcwd() + "\\images\\"
 
 
+def Moore_Penrose_step(X, delta):
+    n, m = X.shape
+    if n > m:
+        X_inv = linalg.inv(X.T @ X - (delta ** 2 * np.eye(m))) @ X.T
+    else:
+        X_inv = X.T @ linalg.inv(X @ X.T - (delta ** 2 * np.eye(n)))
+    return X_inv
+
+
 def Moore_Penrose_Limit(X):
     delta = 255.0
     eps = 1e-24
     diff = 1.
 
-    def step(X, delta):
-        n, m = X.shape
-        if n > m:
-            X_inv = linalg.inv(X.T @ X - (delta ** 2 * np.eye(m))) @ X.T
-        else:
-            X_inv = X.T @ linalg.inv(X @ X.T - (delta ** 2 * np.eye(n)))
-        return X_inv
-
-    X_curr = step(X, delta)
-    X_prev = step(X, delta)
+    X_curr = Moore_Penrose_step(X, delta)
+    X_prev = Moore_Penrose_step(X, delta)
     while diff > eps:
         X_curr = X_prev
         delta = delta/1.61803398875
-        X_prev = step(X, delta)
+        X_prev = Moore_Penrose_step(X, delta)
         diff = linalg.norm(X_curr - X_prev)
 
     return X_curr
@@ -125,16 +126,18 @@ def Z(X, method_func):
     return np.eye(n) - X @ method_func(X)
 
 
-def t(method_func, method_name):
+def run_method(method, method_name):
     X, Y = prepare_XY()
     n, m = X.shape
 
-    V = np.random.rand(Y.shape[0], method_func(X).shape[1])
+    V = np.random.rand(Y.shape[0], method(X).shape[1])
     nV, mV = V.shape
 
-    ZZ = Z(X, method_func).T
-    YY = Y @ method_func(X)
+    ZZ = Z(X, method).T
+    YY = Y @ method(X)
     A = YY + V @ ZZ.T
+
+    array_to_image(A).save(img_path+method_name+'_A_matrix.bmp')
 
     Y_res = A @ X
     image = array_to_image(Y_res)
@@ -144,7 +147,7 @@ def t(method_func, method_name):
     return Y_res
 
 
-mp = t(Moore_Penrose_Limit, "moore")
-mg = t(Greville, "grev")
+mp = run_method(Moore_Penrose_Limit, "moore_penrose")
+mg = run_method(Greville, "greville")
 
 # main()
