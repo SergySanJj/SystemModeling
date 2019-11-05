@@ -87,7 +87,7 @@ while (identification_beta > eps) and (np.abs(prev_ident_beta - identification_b
         temp_iden_beta += (y_func[:, i].reshape(-1, 1) -
                            y_vec).T @ (y_func[:, i] - y_vec.reshape(-1))
 
-    dBeta = np.linalg.inv(left_int_part * dt) @ (right_int_part * dt)
+    dBeta = np.linalg.inv(left_int_part ) @ (right_int_part )
     beta += dBeta.reshape(-1)
 
     prev_ident_beta = identification_beta
